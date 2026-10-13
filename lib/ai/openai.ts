@@ -3,15 +3,27 @@ import { CustomerProfile, FactorScore } from '../matching/types';
 import { generateDeterministicExplanation, generateDeterministicIntroDraft } from '../matching/explanations';
 
 const AiExplanationSchema = z.object({
+  tier: z.string().default('High Potential Match'),
   explanation: z.string().min(10),
+  keySynergies: z.array(z.string()).optional().default([]),
+  frictionPoints: z.array(z.string()).optional().default([]),
   introDraft: z.string().min(20),
 });
 
 export interface AiMatchOutput {
+  tier?: string;
   explanation: string;
+  keySynergies?: string[];
+  frictionPoints?: string[];
   introDraft: string;
   source: 'ai' | 'deterministic';
   provider?: 'gemini' | 'openai' | 'deterministic';
+  apiStatus?: {
+    configured: boolean;
+    provider: string;
+    status: 'active' | 'error' | 'offline';
+    message?: string;
+  };
 }
 
 export async function generateAiMatchInsights(
@@ -41,11 +53,23 @@ export async function generateAiMatchInsights(
     strengths
   );
 
+  const defaultTier =
+    overallScore >= 80
+      ? 'High Potential Match'
+      : overallScore >= 70
+      ? 'Strong Compatibility'
+      : overallScore >= 60
+      ? 'Moderate Fit'
+      : 'Selective Fit';
+
   const systemPrompt = `You are a discreet, senior matrimonial matchmaker at The Date Crew (TDC).
-You will receive verified biodata, calculated compatibility scores, confirmed strengths, potential friction points, and unconfirmed unknowns for two individuals.
+You will receive verified biodata, calculated compatibility scores (0-100), confirmed strengths, friction points, and unconfirmed items for two individuals.
 Your task:
-1. Provide a concise, professional, evidence-grounded match rationale (2-3 sentences).
-2. Draft a personalized, warm introductory message for the client presenting this candidate.
+1. "tier": Classify profile fit into one of: "High Potential Match", "Strong Compatibility", "Moderate Fit", or "Selective Fit" based on logical evidence.
+2. "explanation": Provide natural language reasoning for profile fit (2-3 sentences) grounded strictly on the verified logic and shared traits.
+3. "keySynergies": List 2-3 specific evidence-backed bullet points explaining why these two profiles fit together.
+4. "frictionPoints": List 1-2 points to be mindful of or verify during consultation.
+5. "introDraft": Draft a short, warm, personalized email introduction for the client presenting this candidate.
 
 Strict Rules:
 - Rely strictly on the supplied facts and scores. Never invent details, hobbies, or life events.
@@ -54,7 +78,10 @@ Strict Rules:
 - Acknowledge unknown or unconfirmed items where relevant.
 - Return response strictly in valid JSON matching:
 {
+  "tier": "High Potential Match",
   "explanation": "...",
+  "keySynergies": ["...", "..."],
+  "frictionPoints": ["..."],
   "introDraft": "..."
 }`;
 
@@ -91,62 +118,97 @@ Strict Rules:
     },
   };
 
+  let lastGeminiError: string | undefined;
+
   // ---------------------------------------------------------------------------
   // 1. Check Google Gemini API (Primary Preferred Provider)
   // ---------------------------------------------------------------------------
   const geminiApiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
   if (geminiApiKey && geminiApiKey.trim() !== '' && geminiApiKey !== 'your_gemini_api_key_here') {
-    try {
-      const model = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 8000);
+    const candidateModels = [
+      process.env.GEMINI_MODEL,
+      'gemini-2.0-flash',
+      'gemini-1.5-flash',
+    ].filter(Boolean) as string[];
+    const uniqueModels = Array.from(new Set(candidateModels));
 
-      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiApiKey}`;
+    for (const model of uniqueModels) {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 9000);
 
-      const res = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          system_instruction: {
-            parts: [{ text: systemPrompt }],
-          },
-          contents: [
-            {
-              role: 'user',
-              parts: [{ text: JSON.stringify(userPayload) }],
+        const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiApiKey}`;
+
+        const res = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            system_instruction: {
+              parts: [{ text: systemPrompt }],
             },
-          ],
-          generationConfig: {
-            temperature: 0.3,
-            response_mime_type: 'application/json',
-          },
-        }),
-        signal: controller.signal,
-      });
+            contents: [
+              {
+                role: 'user',
+                parts: [{ text: JSON.stringify(userPayload) }],
+              },
+            ],
+            generationConfig: {
+              temperature: 0.3,
+              response_mime_type: 'application/json',
+            },
+          }),
+          signal: controller.signal,
+        });
 
-      clearTimeout(timeoutId);
+        clearTimeout(timeoutId);
 
-      if (res.ok) {
-        const data = await res.json();
-        const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text;
-        if (rawText) {
-          const cleanText = rawText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-          const parsed = JSON.parse(cleanText);
-          const validated = AiExplanationSchema.safeParse(parsed);
-          if (validated.success) {
-            return {
-              explanation: validated.data.explanation,
-              introDraft: validated.data.introDraft,
-              source: 'ai',
-              provider: 'gemini',
-            };
+        if (res.ok) {
+          const data = await res.json();
+          const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+          if (rawText) {
+            const cleanText = rawText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+            const parsed = JSON.parse(cleanText);
+            const validated = AiExplanationSchema.safeParse(parsed);
+            if (validated.success) {
+              return {
+                tier: validated.data.tier || defaultTier,
+                explanation: validated.data.explanation,
+                keySynergies: validated.data.keySynergies || strengths.slice(0, 3),
+                frictionPoints: validated.data.frictionPoints || potentialConflicts.slice(0, 2),
+                introDraft: validated.data.introDraft,
+                source: 'ai',
+                provider: 'gemini',
+                apiStatus: {
+                  configured: true,
+                  provider: 'gemini',
+                  status: 'active',
+                  message: `Powered by Google Gemini (${model})`,
+                },
+              };
+            }
+          }
+        } else {
+          let errText = `HTTP ${res.status}`;
+          try {
+            const errJson = await res.json();
+            if (errJson?.error?.message) {
+              errText = `HTTP ${res.status}: ${errJson.error.message}`;
+            }
+          } catch {
+            // ignore
+          }
+          lastGeminiError = errText;
+          console.warn(`[AI Gemini] Model ${model} returned ${errText}`);
+          // If project disabled / 403, don't keep hammering subsequent models
+          if (res.status === 403) {
+            break;
           }
         }
-      } else {
-        console.warn(`[AI Gemini] Responded with status ${res.status}. Trying fallback.`);
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        lastGeminiError = msg;
+        console.warn(`[AI Gemini] Model ${model} call failed:`, msg);
       }
-    } catch (err) {
-      console.warn('[AI Gemini] Call failed or timed out. Checking secondary fallback.', err);
     }
   }
 
@@ -188,10 +250,19 @@ Strict Rules:
           const validated = AiExplanationSchema.safeParse(parsed);
           if (validated.success) {
             return {
+              tier: validated.data.tier || defaultTier,
               explanation: validated.data.explanation,
+              keySynergies: validated.data.keySynergies || strengths.slice(0, 3),
+              frictionPoints: validated.data.frictionPoints || potentialConflicts.slice(0, 2),
               introDraft: validated.data.introDraft,
               source: 'ai',
               provider: 'openai',
+              apiStatus: {
+                configured: true,
+                provider: 'openai',
+                status: 'active',
+                message: `Powered by OpenAI (${model})`,
+              },
             };
           }
         }
@@ -205,8 +276,99 @@ Strict Rules:
   // 3. Deterministic Resilient Fallback (Zero external dependencies)
   // ---------------------------------------------------------------------------
   return {
+    tier: defaultTier,
     explanation: deterministicExplanation,
+    keySynergies: strengths.slice(0, 3),
+    frictionPoints: potentialConflicts.slice(0, 2),
     introDraft: deterministicIntro,
+    source: 'deterministic',
+    provider: 'deterministic',
+    apiStatus: {
+      configured: !!geminiApiKey,
+      provider: 'gemini',
+      status: lastGeminiError ? 'error' : 'offline',
+      message: lastGeminiError || 'Operating in offline deterministic mode',
+    },
+  };
+}
+
+export async function generateAiIntroEmail(
+  customer: CustomerProfile,
+  candidate: CustomerProfile,
+  factorScores: FactorScore[],
+  strengths: string[],
+  customNote?: string
+): Promise<{ introDraft: string; source: 'ai' | 'deterministic'; provider: string; message?: string }> {
+  const geminiApiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
+
+  if (geminiApiKey && geminiApiKey.trim() !== '' && geminiApiKey !== 'your_gemini_api_key_here') {
+    const candidateModels = [
+      process.env.GEMINI_MODEL,
+      'gemini-2.0-flash',
+      'gemini-1.5-flash',
+    ].filter(Boolean) as string[];
+    const uniqueModels = Array.from(new Set(candidateModels));
+
+    const introPrompt = `You are a discreet, senior matchmaker at The Date Crew (TDC).
+Draft a short, warm, and highly personalized introductory email to client ${customer.firstName} presenting candidate ${candidate.firstName} ${candidate.lastName}.
+Candidate verified highlights:
+- Age: ${candidate.age}
+- Profession: ${candidate.designation} at ${candidate.currentCompany}
+- Education: ${candidate.undergraduateCollege} (${candidate.degree})
+- Location: ${candidate.city}
+- Shared strengths: ${strengths.slice(0, 2).join('; ')}
+${customNote ? `- Additional Matchmaker note: ${customNote}` : ''}
+
+Rules:
+- Concise, warm, polite, and professional (under 120 words).
+- Focus on lifestyle alignment and shared values.
+- Return response in JSON: { "introDraft": "..." }`;
+
+    for (const model of uniqueModels) {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 8000);
+        const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiApiKey}`;
+
+        const res = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ role: 'user', parts: [{ text: introPrompt }] }],
+            generationConfig: { temperature: 0.35, response_mime_type: 'application/json' },
+          }),
+          signal: controller.signal,
+        });
+
+        clearTimeout(timeoutId);
+
+        if (res.ok) {
+          const data = await res.json();
+          const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+          if (rawText) {
+            const cleanText = rawText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+            const parsed = JSON.parse(cleanText);
+            if (parsed.introDraft) {
+              return {
+                introDraft: parsed.introDraft,
+                source: 'ai',
+                provider: 'gemini',
+                message: `Generated with Google Gemini (${model})`,
+              };
+            }
+          }
+        } else if (res.status === 403) {
+          break;
+        }
+      } catch {
+        // try next model
+      }
+    }
+  }
+
+  // Deterministic fallback
+  return {
+    introDraft: generateDeterministicIntroDraft(customer, candidate, factorScores, strengths),
     source: 'deterministic',
     provider: 'deterministic',
   };

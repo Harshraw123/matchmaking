@@ -141,7 +141,7 @@ export default function CustomerProfilePage() {
       <AppShell>
         <div className="py-16 text-center space-y-3">
           <AlertCircle className="w-8 h-8 text-black mx-auto" />
-          <h2 className="font-serif font-bold text-lg text-black">Client Profile Not Found</h2>
+          <h2 className="font-heading font-bold text-lg text-black">Client Profile Not Found</h2>
           <p className="text-xs text-zinc-500">The requested client identifier does not exist.</p>
           <Link href="/dashboard">
             <Button variant="outline" size="sm" className="text-xs border-zinc-300">Return to Dashboard</Button>
@@ -165,12 +165,12 @@ export default function CustomerProfilePage() {
         <div className="bg-white rounded-2xl border border-zinc-200 p-5 sm:p-6 shadow-2xs">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-5">
             <div className="flex items-start gap-4">
-              <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl bg-black text-white font-serif font-bold text-xl sm:text-2xl flex items-center justify-center shrink-0 shadow-xs">
+              <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl bg-black text-white font-heading font-bold text-xl sm:text-2xl flex items-center justify-center shrink-0 shadow-xs">
                 {customer.firstName[0]}{customer.lastName[0]}
               </div>
               <div className="space-y-1 min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
-                  <h1 className="font-serif font-bold text-xl sm:text-2xl text-black truncate">
+                  <h1 className="font-heading font-bold text-xl sm:text-2xl text-black truncate">
                     {customer.firstName} {customer.lastName}
                   </h1>
                   <Badge variant="outline" className="text-[10px] font-mono bg-black text-white border-black">
@@ -273,7 +273,7 @@ export default function CustomerProfilePage() {
             <div className="p-5 sm:p-6 bg-white rounded-2xl border border-zinc-200 shadow-2xs space-y-3.5">
               <div className="flex items-center gap-2 border-b border-zinc-100 pb-3 text-black">
                 <Briefcase className="w-4 h-4 text-black" />
-                <h3 className="font-serif font-bold text-sm text-black">Career & Financial Standing</h3>
+                <h3 className="font-heading font-bold text-sm text-black">Career & Financial Standing</h3>
               </div>
               <div className="grid grid-cols-2 gap-y-3 gap-x-2 text-xs">
                 <div>
@@ -311,7 +311,7 @@ export default function CustomerProfilePage() {
             <div className="p-5 sm:p-6 bg-white rounded-2xl border border-zinc-200 shadow-2xs space-y-3.5">
               <div className="flex items-center gap-2 border-b border-zinc-100 pb-3 text-black">
                 <Heart className="w-4 h-4 text-black" />
-                <h3 className="font-serif font-bold text-sm text-black">Lifestyle & Values</h3>
+                <h3 className="font-heading font-bold text-sm text-black">Lifestyle & Values</h3>
               </div>
               <div className="grid grid-cols-2 gap-y-3 gap-x-2 text-xs">
                 <div>
@@ -363,7 +363,7 @@ export default function CustomerProfilePage() {
             <div className="p-5 sm:p-6 bg-white rounded-2xl border border-zinc-200 shadow-2xs space-y-3.5">
               <div className="flex items-center gap-2 border-b border-zinc-100 pb-3 text-black">
                 <User className="w-4 h-4 text-black" />
-                <h3 className="font-serif font-bold text-sm text-black">Family & Background</h3>
+                <h3 className="font-heading font-bold text-sm text-black">Family & Background</h3>
               </div>
               <div className="grid grid-cols-2 gap-y-3 gap-x-2 text-xs">
                 <div>
@@ -420,7 +420,7 @@ export default function CustomerProfilePage() {
             <div className="p-5 sm:p-6 bg-white rounded-2xl border border-zinc-200 shadow-2xs space-y-3.5">
               <div className="flex items-center gap-2 border-b border-zinc-100 pb-3 text-black">
                 <Phone className="w-4 h-4 text-black" />
-                <h3 className="font-serif font-bold text-sm text-black">Contact & Operational Notes</h3>
+                <h3 className="font-heading font-bold text-sm text-black">Contact & Operational Notes</h3>
               </div>
               <div className="grid grid-cols-2 gap-y-3 gap-x-2 text-xs">
                 <div>
@@ -459,7 +459,7 @@ export default function CustomerProfilePage() {
           <div className="bg-white rounded-2xl border border-zinc-200 p-5 sm:p-6 shadow-2xs space-y-5">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-zinc-100 pb-4">
               <div>
-                <h3 className="font-serif font-bold text-base text-black">Partner Preferences</h3>
+                <h3 className="font-heading font-bold text-base text-black">Partner Preferences</h3>
                 <p className="text-xs text-zinc-500">Evaluated deterministically in candidate recommendation scoring</p>
               </div>
               <Button
@@ -567,7 +567,7 @@ export default function CustomerProfilePage() {
           <div className="space-y-5">
             {/* Note Composer */}
             <div className="p-5 sm:p-6 bg-white rounded-2xl border border-zinc-200 shadow-2xs space-y-3.5">
-              <h3 className="font-serif font-bold text-sm text-black">Record Consultation Note</h3>
+              <h3 className="font-heading font-bold text-sm text-black">Record Consultation Note</h3>
               <form onSubmit={handleCreateNote} className="space-y-3">
                 <Textarea
                   value={newNoteText}
@@ -615,7 +615,7 @@ export default function CustomerProfilePage() {
 
             {/* Notes Feed */}
             <div className="space-y-3">
-              <h3 className="font-serif font-bold text-sm text-black">Consultation Timeline</h3>
+              <h3 className="font-heading font-bold text-sm text-black">Consultation Timeline</h3>
               {notes.length === 0 ? (
                 <div className="p-8 bg-white rounded-2xl border border-zinc-200 text-center text-xs text-zinc-400 font-mono">
                   No consultation notes logged yet.
@@ -650,7 +650,7 @@ export default function CustomerProfilePage() {
         {/* TAB 4: MATCH HISTORY */}
         {activeTab === 'history' && (
           <div className="bg-white rounded-2xl border border-zinc-200 p-5 sm:p-6 shadow-2xs space-y-4">
-            <h3 className="font-serif font-bold text-base text-black">Match Dispatches & Outcomes</h3>
+            <h3 className="font-heading font-bold text-base text-black">Match Dispatches & Outcomes</h3>
             {introductions.length === 0 ? (
               <div className="py-12 text-center text-xs text-zinc-400 space-y-2">
                 <Send className="w-6 h-6 mx-auto text-zinc-300" />

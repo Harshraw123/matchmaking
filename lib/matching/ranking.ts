@@ -84,6 +84,15 @@ export function rankCandidates(
       scoreResult.strengths
     );
 
+    const tier =
+      scoreResult.overallScore >= 80
+        ? 'High Potential Match'
+        : scoreResult.overallScore >= 70
+        ? 'Strong Compatibility'
+        : scoreResult.overallScore >= 60
+        ? 'Moderate Fit'
+        : 'Selective Fit';
+
     results.push({
       customerId: customer.id,
       candidateId: candidate.id,
@@ -95,6 +104,9 @@ export function rankCandidates(
       unknowns: scoreResult.unknowns,
       eligibilityReasons: eligibility.reasons,
       explanationSource: 'deterministic',
+      tier,
+      keySynergies: scoreResult.strengths.slice(0, 3),
+      frictionPoints: scoreResult.potentialConflicts.slice(0, 2),
       explanation,
       introDraft,
       candidate,

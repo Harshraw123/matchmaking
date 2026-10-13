@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -51,10 +52,10 @@ export default function LoginPage() {
     <div className="min-h-screen bg-[#FAFAFA] flex flex-col justify-center py-8 px-4 sm:px-6 lg:px-8 text-[#09090B]">
       <div className="sm:mx-auto sm:w-full sm:max-w-md text-center space-y-2.5">
         {/* Monogram Crest in Pitch Black */}
-        <div className="mx-auto w-12 h-12 rounded-xl bg-black text-white flex items-center justify-center font-serif text-xl font-bold shadow-md tracking-wider">
+        <div className="mx-auto w-12 h-12 rounded-xl bg-black text-white flex items-center justify-center font-heading text-xl font-bold shadow-md tracking-wider">
           TDC
         </div>
-        <h1 className="font-serif font-bold text-2xl tracking-tight text-black">
+        <h1 className="font-heading font-bold text-2xl tracking-tight text-black">
           The Date Crew
         </h1>
         <p className="text-[10px] uppercase tracking-widest font-mono text-zinc-500 font-semibold">
@@ -65,7 +66,7 @@ export default function LoginPage() {
       <div className="mt-6 sm:mx-auto sm:w-full sm:max-w-md">
         <div className="bg-white py-8 px-6 sm:px-10 rounded-2xl border border-zinc-200 shadow-sm space-y-6">
           <div className="border-b border-zinc-100 pb-4">
-            <h2 className="font-serif font-bold text-base text-black">Internal Operator Login</h2>
+            <h2 className="font-heading font-bold text-base text-black">Internal Operator Login</h2>
             <p className="text-xs text-zinc-500 mt-0.5">
               Access verified matrimonial candidates and scoring engine.
             </p>
@@ -131,6 +132,19 @@ export default function LoginPage() {
               )}
             </Button>
           </form>
+
+          {/* Link to Sign Up */}
+          <div className="pt-2 text-center">
+            <p className="text-xs text-zinc-500">
+              Need an operator account?{' '}
+              <Link
+                href="/sign-up"
+                className="font-semibold text-black hover:underline"
+              >
+                Create an account
+              </Link>
+            </p>
+          </div>
 
           {/* Demo Account Quick-Fill Card */}
           <div className="pt-4 border-t border-zinc-100 space-y-3">

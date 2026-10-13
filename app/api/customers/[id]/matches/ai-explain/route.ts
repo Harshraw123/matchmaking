@@ -2,11 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { store } from '@/lib/db/store';
 import { getSession } from '@/lib/auth/session';
-import { generateAiMatchInsights } from '@/lib/ai/openai';
+import { generateAiMatchInsights, generateAiIntroEmail } from '@/lib/ai/openai';
 import { scoreCandidate } from '@/lib/matching/scoring';
 
 const AiExplainSchema = z.object({
   candidateId: z.string(),
+  action: z.enum(['explain', 'intro']).optional().default('explain'),
+  customNote: z.string().optional(),
 });
 
 export async function POST(
@@ -41,6 +43,21 @@ export async function POST(
     const candidatePrefs = store.getPartnerPreferences(candidate.id) || undefined;
 
     const scored = scoreCandidate(customer, customerPrefs, candidate, candidatePrefs);
+
+    if (parsed.data.action === 'intro') {
+      const introData = await generateAiIntroEmail(
+        customer,
+        candidate,
+        scored.factorScores,
+        scored.strengths,
+        parsed.data.customNote
+      );
+
+      return NextResponse.json({
+        success: true,
+        intro: introData,
+      });
+    }
 
     const insights = await generateAiMatchInsights(
       customer,

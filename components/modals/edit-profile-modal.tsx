@@ -100,7 +100,7 @@ export function EditProfileModal({
       <div className="relative bg-white rounded-2xl w-full max-w-2xl border border-zinc-200 shadow-2xl overflow-hidden flex flex-col max-h-[92vh] z-10">
         <div className="px-5 py-4 border-b border-zinc-100 flex items-center justify-between bg-zinc-50/50">
           <div>
-            <h2 className="font-serif font-bold text-base sm:text-lg text-black">Edit Client Biodata</h2>
+            <h2 className="font-heading font-bold text-base sm:text-lg text-black">Edit Client Biodata</h2>
             <p className="text-xs text-zinc-500">Update verified biodata for {customer.firstName} {customer.lastName}</p>
           </div>
           <Button variant="ghost" size="sm" onClick={onClose} className="text-zinc-400 hover:text-black p-1">

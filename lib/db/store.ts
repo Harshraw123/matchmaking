@@ -21,6 +21,32 @@ class MatchmakerStore {
     return this.data.matchmakers.find(m => m.id === id) || null;
   }
 
+  addMatchmaker(data: {
+    id?: string;
+    name: string;
+    email: string;
+    passwordHash: string;
+    role?: string;
+  }) {
+    const cleanEmail = data.email.trim().toLowerCase();
+    const existing = this.getMatchmakerByEmail(cleanEmail);
+    if (existing) {
+      throw new Error('An account with this email already exists.');
+    }
+
+    const newMatchmaker = {
+      id: data.id || `mm-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      name: data.name.trim(),
+      email: cleanEmail,
+      passwordHash: data.passwordHash,
+      role: data.role || 'Senior Matchmaker',
+      createdAt: new Date().toISOString(),
+    };
+
+    this.data.matchmakers.push(newMatchmaker);
+    return newMatchmaker;
+  }
+
   // --- Customers ---
   getAllCustomers(filters?: {
     search?: string;

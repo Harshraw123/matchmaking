@@ -8,6 +8,7 @@ export interface SyntheticDataset {
     email: string;
     passwordHash: string;
     role: string;
+    createdAt?: string;
   }>;
   customers: CustomerProfile[];
   preferences: PartnerPreferences[];

@@ -43,6 +43,7 @@ export default function CustomerMatchesPage() {
 
   // AI Generation Loading per candidate
   const [aiGenerating, setAiGenerating] = useState<Record<string, boolean>>({});
+  const [apiNotice, setApiNotice] = useState<string | null>(null);
 
   // Dismissed candidates state
   const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
@@ -92,6 +93,7 @@ export default function CustomerMatchesPage() {
 
   const handleRegenerateWithAi = async (candidateId: string) => {
     setAiGenerating(prev => ({ ...prev, [candidateId]: true }));
+    setApiNotice(null);
     try {
       const res = await fetch(`/api/customers/${customerId}/matches/ai-explain`, {
         method: 'POST',
@@ -101,6 +103,12 @@ export default function CustomerMatchesPage() {
 
       const data = await res.json();
       if (res.ok && data.insights) {
+        if (data.insights.apiStatus?.status === 'error') {
+          setApiNotice(
+            data.insights.apiStatus.message ||
+              'Gemini API request failed. Reverted to deterministic fallback.'
+          );
+        }
         setMatches(prev =>
           prev.map(m =>
             m.candidateId === candidateId
@@ -109,6 +117,11 @@ export default function CustomerMatchesPage() {
                   explanation: data.insights.explanation,
                   introDraft: data.insights.introDraft,
                   explanationSource: data.insights.source,
+                  tier: data.insights.tier || m.tier,
+                  keySynergies: data.insights.keySynergies || m.keySynergies,
+                  frictionPoints: data.insights.frictionPoints || m.frictionPoints,
+                  provider: data.insights.provider || m.provider,
+                  apiStatus: data.insights.apiStatus,
                 }
               : m
           )
@@ -145,7 +158,7 @@ export default function CustomerMatchesPage() {
                 Deterministic 7-Factor Model
               </Badge>
             </div>
-            <h1 className="font-serif font-bold text-xl sm:text-2xl text-black mt-1">
+            <h1 className="font-heading font-bold text-xl sm:text-2xl text-black mt-1">
               Candidate Recommendations for {customer?.firstName} {customer?.lastName}
             </h1>
             <p className="text-xs text-zinc-500 mt-0.5">
@@ -223,6 +236,29 @@ export default function CustomerMatchesPage() {
         </div>
 
         {/* Recommendations List */}
+        {apiNotice && (
+          <div className="p-4 bg-zinc-50 border border-zinc-300 rounded-2xl text-xs text-zinc-900 flex items-start justify-between gap-3 font-mono">
+            <div className="flex items-start gap-2.5">
+              <AlertTriangle className="w-4 h-4 text-black shrink-0 mt-0.5" />
+              <div>
+                <span className="font-bold text-black uppercase">Gemini Service Notice:</span>{' '}
+                <span className="text-zinc-700">{apiNotice}</span>
+                <div className="text-[11px] text-zinc-500 mt-1 leading-relaxed">
+                  Tip: To activate live Gemini reasoning, ensure the Generative Language API is enabled in your Google Cloud Project or create an API key in Google AI Studio (<code className="bg-zinc-200 px-1 py-0.5 rounded text-black">aistudio.google.com</code>). The app seamlessly uses the deterministic engine in the meantime.
+                </div>
+              </div>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setApiNotice(null)}
+              className="text-zinc-500 hover:text-black h-6 w-6 p-0 shrink-0"
+            >
+              ✕
+            </Button>
+          </div>
+        )}
+
         {loading ? (
           <div className="py-20 text-center space-y-3 bg-white rounded-2xl border border-zinc-200">
             <Loader2 className="w-8 h-8 text-black animate-spin mx-auto" />
@@ -233,7 +269,7 @@ export default function CustomerMatchesPage() {
         ) : visibleMatches.length === 0 ? (
           <div className="py-16 text-center bg-white rounded-2xl border border-zinc-200 p-8 space-y-3">
             <Info className="w-8 h-8 text-zinc-300 mx-auto" />
-            <h3 className="font-serif font-bold text-base text-black">No Candidate Recommendations Found</h3>
+            <h3 className="font-heading font-bold text-base text-black">No Candidate Recommendations Found</h3>
             <p className="text-xs text-zinc-500 max-w-md mx-auto">
               No opposite-gender candidates matched active criteria or verification constraints.
             </p>
@@ -262,7 +298,7 @@ export default function CustomerMatchesPage() {
                   <div className="p-4 sm:p-6 flex flex-col md:flex-row md:items-center justify-between gap-4 sm:gap-6 border-b border-zinc-100">
                     <div className="flex items-start gap-3.5 sm:gap-4">
                       {/* Avatar initials in solid black */}
-                      <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-black text-white font-serif font-bold text-lg sm:text-xl flex items-center justify-center shrink-0 shadow-2xs">
+                      <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-black text-white font-heading font-bold text-lg sm:text-xl flex items-center justify-center shrink-0 shadow-2xs">
                         {cand.firstName[0]}{cand.lastName[0]}
                       </div>
 
@@ -271,10 +307,24 @@ export default function CustomerMatchesPage() {
                           <span className="text-[10px] font-mono font-bold text-zinc-400 uppercase">
                             #{idx + 1} Recommendation
                           </span>
-                          <h2 className="font-serif font-bold text-lg sm:text-xl text-black truncate">
+                          <h2 className="font-heading font-bold text-lg sm:text-xl text-black truncate">
                             {cand.firstName} {cand.lastName}
                           </h2>
-                          <Badge variant="outline" className="text-[9px] font-mono bg-black text-white border-black">
+                          {match.tier && (
+                            <Badge
+                              variant="outline"
+                              className={`text-[9px] font-mono ${
+                                match.tier.includes('High')
+                                  ? 'bg-black text-white border-black'
+                                  : match.tier.includes('Strong')
+                                  ? 'bg-zinc-800 text-white border-zinc-800'
+                                  : 'bg-zinc-100 text-zinc-800 border-zinc-300'
+                              }`}
+                            >
+                              ★ {match.tier}
+                            </Badge>
+                          )}
+                          <Badge variant="outline" className="text-[9px] font-mono bg-zinc-100 text-zinc-800 border-zinc-300">
                             {cand.verificationStatus === 'verified' ? '✓ Verified' : 'Pending'}
                           </Badge>
                         </div>
@@ -302,7 +352,7 @@ export default function CustomerMatchesPage() {
                     {/* Overall Score Dial & Actions */}
                     <div className="flex items-center justify-between md:justify-end gap-4 pt-2 md:pt-0 border-t md:border-t-0 border-zinc-100 shrink-0">
                       <div className="text-left md:text-right">
-                        <div className="text-2xl sm:text-3xl font-serif font-bold text-black font-mono">
+                        <div className="text-2xl sm:text-3xl font-heading font-bold text-black font-mono">
                           {match.overallScore}
                           <span className="text-xs font-mono font-normal text-zinc-400">/100</span>
                         </div>
@@ -380,15 +430,28 @@ export default function CustomerMatchesPage() {
                     </div>
 
                     {/* AI / Deterministic Match Rationale Card */}
-                    <div className="p-4 bg-white rounded-xl border border-zinc-200 space-y-2">
+                    <div className="p-4 bg-white rounded-xl border border-zinc-200 space-y-2.5">
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                         <div className="flex items-center gap-2">
                           <Sparkles className="w-3.5 h-3.5 text-black" />
                           <span className="text-xs font-bold uppercase font-mono tracking-wider text-black">
-                            Matchmaker Rationale
+                            Matchmaker Rationale & Profile Fit
                           </span>
-                          <Badge variant="outline" className="text-[9px] font-mono bg-zinc-50 text-zinc-600 border-zinc-300">
-                            {match.explanationSource === 'ai' ? 'AI Grounded' : 'Deterministic'}
+                          <Badge
+                            variant="outline"
+                            className={`text-[9px] font-mono ${
+                              match.provider === 'gemini' || (match.explanationSource === 'ai' && match.provider !== 'openai')
+                                ? 'bg-black text-white border-black'
+                                : match.provider === 'openai'
+                                ? 'bg-zinc-800 text-white border-zinc-800'
+                                : 'bg-zinc-50 text-zinc-600 border-zinc-300'
+                            }`}
+                          >
+                            {match.provider === 'gemini' || (match.explanationSource === 'ai' && match.provider !== 'openai')
+                              ? '✨ Google Gemini'
+                              : match.provider === 'openai'
+                              ? '✨ OpenAI'
+                              : 'Deterministic Engine'}
                           </Badge>
                         </div>
                         <Button
@@ -400,11 +463,11 @@ export default function CustomerMatchesPage() {
                         >
                           {isAiGen ? (
                             <>
-                              <Loader2 className="w-3 h-3 mr-1 animate-spin" /> Synthesizing...
+                              <Loader2 className="w-3 h-3 mr-1 animate-spin" /> Reasoning with Gemini...
                             </>
                           ) : (
                             <>
-                              <Sparkles className="w-3 h-3 mr-1" /> Regenerate with AI
+                              <Sparkles className="w-3 h-3 mr-1" /> Regenerate with Gemini
                             </>
                           )}
                         </Button>
@@ -412,6 +475,23 @@ export default function CustomerMatchesPage() {
                       <p className="text-xs text-zinc-700 leading-relaxed">
                         {match.explanation}
                       </p>
+                      {match.keySynergies && match.keySynergies.length > 0 && (
+                        <div className="pt-2 border-t border-zinc-100">
+                          <span className="text-[10px] font-mono uppercase font-bold text-zinc-500 block mb-1">
+                            Key Profile Fit Synergies:
+                          </span>
+                          <div className="flex flex-wrap gap-1.5">
+                            {match.keySynergies.map((synergy, sIdx) => (
+                              <span
+                                key={sIdx}
+                                className="inline-flex items-center text-[10px] px-2 py-0.5 rounded-md bg-zinc-100 text-zinc-800 font-mono"
+                              >
+                                ✓ {synergy}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
 
                     {/* Collapsible 7-Factor Breakdown */}

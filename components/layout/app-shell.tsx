@@ -91,11 +91,11 @@ export function AppShell({
       {/* Mobile Top Navigation Bar */}
       <header className="md:hidden sticky top-0 z-30 flex items-center justify-between px-4 py-3 bg-white/95 backdrop-blur-md border-b border-zinc-200">
         <Link href="/dashboard" className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-black text-white flex items-center justify-center font-serif font-bold text-xs tracking-wider shadow-xs">
+          <div className="w-8 h-8 rounded-lg bg-black text-white flex items-center justify-center font-heading font-bold text-xs tracking-wider shadow-xs">
             TDC
           </div>
           <div>
-            <span className="font-serif font-bold text-sm tracking-tight text-black block leading-none">The Date Crew</span>
+            <span className="font-heading font-bold text-sm tracking-tight text-black block leading-none">The Date Crew</span>
             <span className="text-[9px] uppercase tracking-widest font-mono text-zinc-500 block mt-0.5">Workspace</span>
           </div>
         </Link>
@@ -128,11 +128,11 @@ export function AppShell({
         {/* Brand Monogram Area */}
         <div className="p-5 border-b border-zinc-100 flex items-center justify-between">
           <Link href="/dashboard" className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-black text-white flex items-center justify-center font-serif font-bold text-sm tracking-wider shadow-xs">
+            <div className="w-9 h-9 rounded-lg bg-black text-white flex items-center justify-center font-heading font-bold text-sm tracking-wider shadow-xs">
               TDC
             </div>
             <div>
-              <div className="font-serif font-bold text-sm text-black tracking-tight leading-none">The Date Crew</div>
+              <div className="font-heading font-bold text-sm text-black tracking-tight leading-none">The Date Crew</div>
               <div className="text-[10px] uppercase tracking-widest font-mono text-zinc-500 mt-1">
                 Matchmaker Suite
               </div>
@@ -290,10 +290,33 @@ export function AppShell({
               </React.Fragment>
             ))}
           </div>
-          <div className="flex items-center gap-2.5">
-            <Badge variant="outline" className="text-[10px] font-mono border-zinc-200 bg-zinc-50 text-zinc-600">
-              STATUS: ONLINE
-            </Badge>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2.5 pl-3 border-l border-zinc-200">
+              <div className="w-7 h-7 rounded-full bg-black text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-2xs">
+                {user?.name ? user.name[0].toUpperCase() : 'M'}
+              </div>
+              <div className="text-left">
+                <div className="text-xs font-semibold text-black leading-none flex items-center gap-1.5">
+                  <span>{user?.name || 'Operator'}</span>
+                  <Badge variant="outline" className="text-[9px] font-mono border-zinc-300 bg-zinc-100 text-zinc-800 px-1 py-0 h-4">
+                    {user?.role || 'Lead Matchmaker'}
+                  </Badge>
+                </div>
+                <div className="text-[10px] text-zinc-400 font-mono mt-0.5 leading-none">
+                  {user?.email || 'matchmaker@thedatecrew.com'}
+                </div>
+              </div>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleLogout}
+              className="text-xs h-7 border-zinc-200 text-zinc-700 hover:text-black hover:bg-zinc-100 px-2"
+              title="Sign Out"
+            >
+              <LogOut className="w-3.5 h-3.5 mr-1 text-zinc-500" />
+              Sign Out
+            </Button>
           </div>
         </header>
 

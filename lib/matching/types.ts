@@ -119,9 +119,19 @@ export interface MatchResult {
   unknowns: string[];
   eligibilityReasons: string[];
   explanationSource: 'deterministic' | 'ai';
+  tier?: string; // e.g. "High Potential Match" | "Strong Compatibility" | "Moderate Fit"
+  keySynergies?: string[];
+  frictionPoints?: string[];
   explanation?: string;
   introDraft?: string;
   candidate?: CustomerProfile;
+  provider?: 'gemini' | 'openai' | 'deterministic';
+  apiStatus?: {
+    configured: boolean;
+    provider: string;
+    status: 'active' | 'error' | 'offline';
+    message?: string;
+  };
 }
 
 export interface MatchingConfig {

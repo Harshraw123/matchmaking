@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { store } from '@/lib/db/store';
+import { findUserByEmail } from '@/lib/db/auth-db';
 import { verifyPassword, createSession } from '@/lib/auth/session';
 
 const LoginSchema = z.object({
@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
     }
 
     const { email, password } = parsed.data;
-    const matchmaker = store.getMatchmakerByEmail(email);
+    const matchmaker = await findUserByEmail(email);
 
     if (!matchmaker) {
       return NextResponse.json(

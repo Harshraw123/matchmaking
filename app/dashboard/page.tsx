@@ -33,12 +33,24 @@ interface OperationalMetrics {
 }
 
 export default function DashboardPage() {
+  const [currentUser, setCurrentUser] = useState<{ name: string; email: string; role: string } | null>(null);
   const [customers, setCustomers] = useState<CustomerProfile[]>([]);
   const [metrics, setMetrics] = useState<OperationalMetrics | null>(null);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch('/api/auth/me')
+      .then(res => res.json())
+      .then(data => {
+        if (data.user) {
+          setCurrentUser(data.user);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   // Filters
   const [search, setSearch] = useState('');
@@ -142,14 +154,44 @@ export default function DashboardPage() {
   return (
     <AppShell breadcrumbs={[{ label: 'Dashboard' }]}>
       <div className="space-y-6 sm:space-y-8">
+        {/* Operator Profile Banner */}
+        <div className="p-4 sm:p-5 bg-white rounded-2xl border border-zinc-200 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3.5">
+            <div className="w-12 h-12 rounded-xl bg-black text-white font-heading font-bold text-lg flex items-center justify-center shrink-0 shadow-xs">
+              {currentUser?.name ? currentUser.name[0].toUpperCase() : 'M'}
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-mono uppercase font-bold text-zinc-400 tracking-wider">
+                  Active Operator
+                </span>
+                <Badge variant="outline" className="text-[9px] font-mono bg-zinc-100 text-black border-zinc-300">
+                  {currentUser?.role || 'Senior Matchmaker'}
+                </Badge>
+              </div>
+              <h2 className="font-heading font-bold text-lg sm:text-xl text-black">
+                {currentUser?.name ? `Welcome, ${currentUser.name}` : 'Welcome back'}
+              </h2>
+              <p className="text-xs text-zinc-500 font-mono">
+                {currentUser?.email || 'Logged in to TDC workspace'}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 self-start sm:self-auto">
+            <Badge variant="outline" className="text-xs font-mono bg-zinc-50 border-zinc-200 text-zinc-700 py-1 px-3">
+              Role: <span className="text-black font-semibold ml-1">{currentUser?.role || 'Lead Matchmaker'}</span>
+            </Badge>
+          </div>
+        </div>
+
         {/* Page Heading Area */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <h1 className="font-serif font-bold text-2xl sm:text-3xl text-black tracking-tight">
+            <h1 className="font-heading font-bold text-2xl sm:text-3xl text-black tracking-tight">
               Operations Console
             </h1>
             <p className="text-xs text-zinc-500 mt-1">
-              Active client roster, verified biodata, and algorithmic discovery engine.
+              {currentUser?.name ? `Lead Operator: ${currentUser.name} • ` : ''}Active client roster, verified biodata, and algorithmic discovery engine.
             </p>
           </div>
           <div className="flex items-center gap-2 self-start sm:self-auto">
@@ -171,7 +213,7 @@ export default function DashboardPage() {
               <span className="text-[10px] font-mono uppercase font-bold tracking-wider">Assigned</span>
               <Users className="w-3.5 h-3.5 text-black" />
             </div>
-            <div className="text-2xl font-serif font-bold text-black">
+            <div className="text-2xl font-heading font-bold text-black">
               {metrics ? metrics.totalAssignedCustomers : '—'}
             </div>
             <div className="text-[10px] text-zinc-400">Assigned clients</div>
@@ -182,7 +224,7 @@ export default function DashboardPage() {
               <span className="text-[10px] font-mono uppercase font-bold tracking-wider">Verified</span>
               <ShieldCheck className="w-3.5 h-3.5 text-black" />
             </div>
-            <div className="text-2xl font-serif font-bold text-black">
+            <div className="text-2xl font-heading font-bold text-black">
               {metrics ? metrics.verifiedProfiles : '—'}
             </div>
             <div className="text-[10px] text-zinc-400">Authenticated profiles</div>
@@ -193,7 +235,7 @@ export default function DashboardPage() {
               <span className="text-[10px] font-mono uppercase font-bold tracking-wider">Review</span>
               <Clock className="w-3.5 h-3.5 text-zinc-400" />
             </div>
-            <div className="text-2xl font-serif font-bold text-zinc-700">
+            <div className="text-2xl font-heading font-bold text-zinc-700">
               {metrics ? metrics.profilesAwaitingReview : '—'}
             </div>
             <div className="text-[10px] text-zinc-400">Audit in progress</div>
@@ -204,7 +246,7 @@ export default function DashboardPage() {
               <span className="text-[10px] font-mono uppercase font-bold tracking-wider">Ready</span>
               <HeartHandshake className="w-3.5 h-3.5 text-black" />
             </div>
-            <div className="text-2xl font-serif font-bold text-black">
+            <div className="text-2xl font-heading font-bold text-black">
               {metrics ? metrics.readyForMatches : '—'}
             </div>
             <div className="text-[10px] text-zinc-400">Active for matching</div>
@@ -215,7 +257,7 @@ export default function DashboardPage() {
               <span className="text-[10px] font-mono uppercase font-bold tracking-wider">Sent Intros</span>
               <Send className="w-3.5 h-3.5 text-black" />
             </div>
-            <div className="text-2xl font-serif font-bold text-black">
+            <div className="text-2xl font-heading font-bold text-black">
               {metrics ? metrics.pendingIntroductions : '—'}
             </div>
             <div className="text-[10px] text-zinc-400">Introductions sent</div>
@@ -226,7 +268,7 @@ export default function DashboardPage() {
               <span className="text-[10px] font-mono uppercase font-bold tracking-wider">Follow-Ups</span>
               <Calendar className="w-3.5 h-3.5 text-black" />
             </div>
-            <div className="text-2xl font-serif font-bold text-black">
+            <div className="text-2xl font-heading font-bold text-black">
               {metrics ? metrics.upcomingFollowUps : '—'}
             </div>
             <div className="text-[10px] text-zinc-400">Scheduled check-ins</div>
@@ -397,7 +439,7 @@ export default function DashboardPage() {
                     <td colSpan={8} className="py-16 text-center">
                       <div className="max-w-sm mx-auto space-y-2.5">
                         <UserCheck className="w-8 h-8 text-zinc-300 mx-auto" />
-                        <h4 className="font-serif font-bold text-sm text-black">No Matching Clients Found</h4>
+                        <h4 className="font-heading font-bold text-sm text-black">No Matching Clients Found</h4>
                         <p className="text-xs text-zinc-500">
                           Try adjusting the search query or resetting active filter constraints.
                         </p>
@@ -415,7 +457,7 @@ export default function DashboardPage() {
                     >
                       <td className="py-3 px-4">
                         <Link href={`/customers/${customer.id}`} className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-black text-white font-serif font-bold flex items-center justify-center text-xs shrink-0 shadow-2xs">
+                          <div className="w-8 h-8 rounded-full bg-black text-white font-heading font-bold flex items-center justify-center text-xs shrink-0 shadow-2xs">
                             {customer.firstName[0]}{customer.lastName[0]}
                           </div>
                           <div>

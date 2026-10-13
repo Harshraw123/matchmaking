@@ -23,8 +23,12 @@ export default function proxy(request: NextRequest) {
     }
   }
 
-  // Login page access
-  if (pathname === '/login') {
+  // Login & Sign-up page access
+  if (pathname === '/sign-in') {
+    return NextResponse.redirect(new URL('/login', request.url));
+  }
+
+  if (pathname === '/login' || pathname === '/sign-up') {
     if (sessionCookie) {
       return NextResponse.redirect(new URL('/dashboard', request.url));
     }

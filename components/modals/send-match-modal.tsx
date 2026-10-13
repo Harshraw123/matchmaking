@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { X, Send, Loader2, CheckCircle2, AlertCircle, Info } from 'lucide-react';
+import { X, Send, Loader2, CheckCircle2, AlertCircle, Info, Sparkles } from 'lucide-react';
 
 interface SendMatchModalProps {
   customer: CustomerProfile;
@@ -26,8 +26,39 @@ export function SendMatchModal({
   const candidate = match.candidate;
   const [message, setMessage] = useState(match.introDraft || '');
   const [loading, setLoading] = useState(false);
+  const [generatingIntro, setGeneratingIntro] = useState(false);
+  const [introProvider, setIntroProvider] = useState<string>(
+    match.provider || (match.explanationSource === 'ai' ? 'gemini' : 'deterministic')
+  );
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+
+  const handleGenerateIntroWithGemini = async () => {
+    if (!candidate) return;
+    setGeneratingIntro(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/customers/${customer.id}/matches/ai-explain`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          candidateId: candidate.id,
+          action: 'intro',
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.intro?.introDraft) {
+        setMessage(data.intro.introDraft);
+        setIntroProvider(data.intro.provider || 'gemini');
+      } else {
+        setError(data.error || 'Failed to generate introduction with Gemini.');
+      }
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Error generating introduction.');
+    } finally {
+      setGeneratingIntro(false);
+    }
+  };
 
   // Close on Escape key
   useEffect(() => {
@@ -100,11 +131,11 @@ export function SendMatchModal({
         {/* Header */}
         <div className="px-5 py-4 border-b border-zinc-100 flex items-center justify-between bg-zinc-50/50">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-black text-white flex items-center justify-center font-serif text-sm">
+            <div className="w-8 h-8 rounded-lg bg-black text-white flex items-center justify-center font-heading text-sm">
               <Send className="w-4 h-4" />
             </div>
             <div>
-              <h2 className="font-serif font-bold text-sm sm:text-base text-black">Dispatch Match Introduction</h2>
+              <h2 className="font-heading font-bold text-sm sm:text-base text-black">Dispatch Match Introduction</h2>
               <p className="text-xs text-zinc-500">
                 Presenting {candidate.firstName} {candidate.lastName} to {customer.firstName} {customer.lastName}
               </p>
@@ -122,7 +153,7 @@ export function SendMatchModal({
               <div className="w-12 h-12 rounded-full bg-black text-white flex items-center justify-center animate-bounce">
                 <CheckCircle2 className="w-6 h-6" />
               </div>
-              <h3 className="font-serif font-bold text-lg text-black">Introduction Dispatched</h3>
+              <h3 className="font-heading font-bold text-lg text-black">Introduction Dispatched</h3>
               <p className="text-xs text-zinc-500 max-w-md font-mono">
                 The introduction record has been logged, status updated to <span className="font-semibold text-black">SENT</span>, and recorded into client history.
               </p>
@@ -139,11 +170,11 @@ export function SendMatchModal({
               {/* Candidate Quick Snapshot */}
               <div className="p-3.5 bg-zinc-50 rounded-xl border border-zinc-200 flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-10 h-10 rounded-full bg-black text-white font-serif font-bold flex items-center justify-center text-xs shrink-0">
+                  <div className="w-10 h-10 rounded-full bg-black text-white font-heading font-bold flex items-center justify-center text-xs shrink-0">
                     {candidate.firstName[0]}{candidate.lastName[0]}
                   </div>
                   <div className="min-w-0">
-                    <div className="font-serif font-semibold text-sm text-black truncate">
+                    <div className="font-heading font-semibold text-sm text-black truncate">
                       {candidate.firstName} {candidate.lastName}, {candidate.age}y
                     </div>
                     <div className="text-xs text-zinc-500 truncate">
@@ -163,13 +194,33 @@ export function SendMatchModal({
 
               {/* Introduction Message Composer */}
               <div className="space-y-1.5">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
-                  <Label className="text-xs font-semibold text-black">
-                    Personalized Introduction Message (Editable Draft)
-                  </Label>
-                  <span className="text-[10px] text-zinc-400 font-mono">
-                    Tailor text before dispatch
-                  </span>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
+                  <div className="flex items-center gap-2">
+                    <Label className="text-xs font-semibold text-black">
+                      Personalized Introduction Message
+                    </Label>
+                    <Badge variant="outline" className="text-[9px] font-mono bg-zinc-50 text-zinc-600 border-zinc-300">
+                      {introProvider === 'gemini' ? '✨ Gemini Draft' : introProvider === 'openai' ? '✨ OpenAI Draft' : 'Deterministic Draft'}
+                    </Badge>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    disabled={generatingIntro || loading}
+                    onClick={handleGenerateIntroWithGemini}
+                    className="text-[11px] h-6 px-2 text-black hover:bg-zinc-100 font-mono self-start sm:self-auto"
+                  >
+                    {generatingIntro ? (
+                      <>
+                        <Loader2 className="w-3 h-3 mr-1 animate-spin" /> Drafting with Gemini...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="w-3 h-3 mr-1 text-black" /> Regenerate with Gemini
+                      </>
+                    )}
+                  </Button>
                 </div>
                 <Textarea
                   value={message}

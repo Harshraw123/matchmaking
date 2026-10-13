@@ -9,6 +9,15 @@ export const matchmakers = pgTable("matchmakers", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+export const users = pgTable("users", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  email: text("email").notNull().unique(),
+  passwordHash: text("password_hash").notNull(),
+  role: text("role").notNull().default("Senior Matchmaker"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 export const customers = pgTable("customers", {
   id: text("id").primaryKey(),
   firstName: text("first_name").notNull(),
@@ -123,6 +132,7 @@ export const matchIntroductions = pgTable("match_introductions", {
 });
 
 export type Matchmaker = typeof matchmakers.$inferSelect;
+export type User = typeof users.$inferSelect;
 export type Customer = typeof customers.$inferSelect;
 export type PartnerPreference = typeof partnerPreferences.$inferSelect;
 export type CustomerNote = typeof customerNotes.$inferSelect;
