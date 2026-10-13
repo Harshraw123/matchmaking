@@ -194,7 +194,7 @@ Create a `.env` file from `.env.example` if you want to connect live external se
 ```env
 # Optional: Google Gemini API (Recommended)
 GEMINI_API_KEY=your_gemini_api_key_here
-GEMINI_MODEL=gemini-2.5-flash
+GEMINI_MODEL=gemini-3.5-flash-lite
 
 # Optional: OpenAI API Key (Alternative)
 OPENAI_API_KEY=your_openai_api_key_here
