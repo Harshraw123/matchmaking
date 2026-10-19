@@ -33,7 +33,7 @@ export async function GET(
     c => c.id !== customer.id && c.gender !== customer.gender
   );
 
-  const ranked = rankCandidates(
+  const ranked = await rankCandidates(
     customer,
     customerPrefs,
     candidatesPool,

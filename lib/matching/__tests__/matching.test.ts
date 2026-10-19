@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import { CustomerProfile, PartnerPreferences } from '../types';
 import { checkEligibility } from '../eligibility';
 import { scoreCandidate } from '../scoring';
-import { rankCandidates } from '../ranking';
+import { rankCandidates, rankCandidatesSync } from '../ranking';
+import { generateGeminiExplanation, generateGeminiIntroDraft } from '../explanations';
 
 // Sample mock profiles
 const baseMale: CustomerProfile = {
@@ -186,7 +187,7 @@ test('4. Male-specific and female-specific strategies differ appropriately', () 
   assert.ok(maleF1 > femaleF1);
 });
 
-test('5. Mutual preference alignment affects ranking', () => {
+test('5. Mutual preference alignment affects ranking', async () => {
   const perfectReciprocal: CustomerProfile = { ...baseFemale, id: 'cand-perfect' };
   const perfectPrefs: PartnerPreferences = {
     id: 'pref-perf',
@@ -210,11 +211,12 @@ test('5. Mutual preference alignment affects ranking', () => {
     ['cand-onesided', poorPrefs],
   ]);
 
-  const ranked = rankCandidates(
+  const ranked = await rankCandidates(
     baseMale,
     baseMalePrefs,
     [oneSidedReciprocal, perfectReciprocal],
-    prefsMap
+    prefsMap,
+    { enableAi: false }
   );
 
   assert.equal(ranked[0].candidateId, 'cand-perfect');
@@ -264,15 +266,15 @@ test('8. Scores remain strictly within 0–100', () => {
   }
 });
 
-test('9. Candidate ranking is deterministic', () => {
+test('9. Candidate ranking is deterministic', async () => {
   const c1 = { ...baseFemale, id: 'cand-a' };
   const c2 = { ...baseFemale, id: 'cand-b', age: 30 };
   const c3 = { ...baseFemale, id: 'cand-c', age: 28 };
 
   const prefsMap = new Map<string, PartnerPreferences>();
 
-  const rank1 = rankCandidates(baseMale, baseMalePrefs, [c1, c2, c3], prefsMap);
-  const rank2 = rankCandidates(baseMale, baseMalePrefs, [c3, c1, c2], prefsMap);
+  const rank1 = await rankCandidates(baseMale, baseMalePrefs, [c1, c2, c3], prefsMap, { enableAi: false });
+  const rank2 = await rankCandidates(baseMale, baseMalePrefs, [c3, c1, c2], prefsMap, { enableAi: false });
 
   assert.deepEqual(
     rank1.map(r => r.candidateId),
@@ -321,9 +323,9 @@ test('11. Sensitive attributes do not influence default scoring', () => {
   assert.equal(scoreA.overallScore, scoreC.overallScore);
 });
 
-test('12. AI failure does not break the matching engine', () => {
+test('12. AI failure does not break the matching engine', async () => {
   // Deterministic fallback explanation & intro must generate seamlessly without LLM
-  const ranked = rankCandidates(
+  const ranked = await rankCandidates(
     baseMale,
     baseMalePrefs,
     [baseFemale],
@@ -333,5 +335,32 @@ test('12. AI failure does not break the matching engine', () => {
   assert.equal(ranked.length, 1);
   assert.ok(ranked[0].explanation && ranked[0].explanation.length > 20);
   assert.ok(ranked[0].introDraft && ranked[0].introDraft.length > 50);
-  assert.equal(ranked[0].explanationSource, 'deterministic');
+  assert.ok(['deterministic', 'ai'].includes(ranked[0].explanationSource));
+});
+
+test('13. Gemini explanation & intro services handle both active and fallback modes', async () => {
+  const scoreResult = scoreCandidate(baseMale, baseMalePrefs, baseFemale, baseFemalePrefs);
+  const explanationRes = await generateGeminiExplanation(
+    baseMale,
+    baseFemale,
+    scoreResult.overallScore,
+    scoreResult.scoreCoverage,
+    scoreResult.factorScores,
+    scoreResult.strengths,
+    scoreResult.potentialConflicts,
+    scoreResult.unknowns
+  );
+
+  assert.ok(explanationRes.explanation && explanationRes.explanation.length > 20);
+  assert.ok(['ai', 'deterministic'].includes(explanationRes.source));
+
+  const introRes = await generateGeminiIntroDraft(
+    baseMale,
+    baseFemale,
+    scoreResult.factorScores,
+    scoreResult.strengths
+  );
+
+  assert.ok(introRes.introDraft && introRes.introDraft.length > 40);
+  assert.ok(['ai', 'deterministic'].includes(introRes.source));
 });

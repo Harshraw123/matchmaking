@@ -7,7 +7,11 @@ import {
 } from './types';
 import { checkEligibility } from './eligibility';
 import { scoreCandidate } from './scoring';
-import { generateDeterministicExplanation, generateDeterministicIntroDraft } from './explanations';
+import {
+  generateDeterministicExplanation,
+  generateDeterministicIntroDraft,
+  generateGeminiMatchNarrative,
+} from './explanations';
 
 export type SortCriteria = 'overall' | 'mutual' | 'completeness';
 
@@ -17,9 +21,16 @@ export interface RankOptions {
   limit?: number;
   config?: MatchingConfig;
   alreadyIntroducedIds?: Set<string>;
+  enableAi?: boolean;
+  aiLimit?: number;
 }
 
-export function rankCandidates(
+/**
+ * Deterministic baseline candidate ranking (synchronous).
+ * Filters eligible candidates, scores them across 7 factors, and sorts them deterministically.
+ * Ranking and eligibility are 100% controlled by mathematical algorithms without LLM influence.
+ */
+export function rankCandidatesSync(
   customer: CustomerProfile,
   customerPrefs: PartnerPreferences | undefined,
   candidates: CustomerProfile[],
@@ -43,7 +54,7 @@ export function rankCandidates(
 
     const candidatePrefs = candidatePrefsMap.get(candidate.id);
 
-    // 1. Hard Eligibility Filter
+    // 1. Hard Eligibility Filter (Unchanged)
     const eligibility = checkEligibility({
       customer,
       customerPrefs,
@@ -57,7 +68,7 @@ export function rankCandidates(
       continue;
     }
 
-    // 2. Multi-factor Scoring
+    // 2. Multi-factor Scoring (Unchanged)
     const scoreResult = scoreCandidate(
       customer,
       customerPrefs,
@@ -66,7 +77,7 @@ export function rankCandidates(
       config
     );
 
-    // 3. Explanation & Intro generation
+    // 3. Deterministic baseline explanation & intro generation
     const explanation = generateDeterministicExplanation(
       customer,
       candidate,
@@ -104,6 +115,7 @@ export function rankCandidates(
       unknowns: scoreResult.unknowns,
       eligibilityReasons: eligibility.reasons,
       explanationSource: 'deterministic',
+      provider: 'deterministic',
       tier,
       keySynergies: scoreResult.strengths.slice(0, 3),
       frictionPoints: scoreResult.potentialConflicts.slice(0, 2),
@@ -113,7 +125,7 @@ export function rankCandidates(
     });
   }
 
-  // 4. Deterministic Ranking
+  // 4. Deterministic Ranking (Controlled by mathematical scores & tie-breakers)
   results.sort((a, b) => {
     if (sort === 'mutual') {
       const aMutual = a.factorScores.find(f => f.factor === 'mutualPreferences')?.score ?? 0;
@@ -143,4 +155,75 @@ export function rankCandidates(
   }
 
   return results;
+}
+
+/**
+ * Main Candidate Ranking Pipeline.
+ * 1. Executes deterministic eligibility and scoring (under strict algorithmic control).
+ * 2. Establishes final ranking order mathematically.
+ * 3. Enhances top ranked candidates with Gemini-powered explanations and personalized intro drafts.
+ * 4. Gracefully falls back to deterministic copy if Gemini is unconfigured or fails.
+ */
+export async function rankCandidates(
+  customer: CustomerProfile,
+  customerPrefs: PartnerPreferences | undefined,
+  candidates: CustomerProfile[],
+  candidatePrefsMap: Map<string, PartnerPreferences>,
+  options: RankOptions = {}
+): Promise<MatchResult[]> {
+  // 1 & 2. Get deterministically filtered, scored, and ranked candidates
+  const ranked = rankCandidatesSync(customer, customerPrefs, candidates, candidatePrefsMap, options);
+
+  const shouldRunAi = options.enableAi ?? Boolean(process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY);
+  if (!shouldRunAi || ranked.length === 0) {
+    return ranked;
+  }
+
+  // Determine how many top candidates to enhance with Gemini
+  const aiCount = Math.min(options.aiLimit ?? 5, ranked.length);
+
+  // Enhance top matches concurrently
+  const enhancementPromises = ranked.slice(0, aiCount).map(async (match) => {
+    if (!match.candidate) return match;
+
+    try {
+      const aiNarrative = await generateGeminiMatchNarrative(
+        customer,
+        match.candidate,
+        match.overallScore,
+        match.scoreCoverage,
+        match.factorScores,
+        match.strengths,
+        match.potentialConflicts,
+        match.unknowns
+      );
+
+      if (aiNarrative.source === 'ai') {
+        return {
+          ...match,
+          explanation: aiNarrative.explanation,
+          introDraft: aiNarrative.introDraft,
+          tier: aiNarrative.tier || match.tier,
+          keySynergies: aiNarrative.keySynergies || match.keySynergies,
+          frictionPoints: aiNarrative.frictionPoints || match.frictionPoints,
+          explanationSource: 'ai' as const,
+          provider: 'gemini' as const,
+        };
+      }
+    } catch (err) {
+      console.warn(`[AI Enhancement] Fallback applied for candidate ${match.candidateId}:`, err);
+    }
+
+    return match;
+  });
+
+  const settled = await Promise.allSettled(enhancementPromises);
+
+  settled.forEach((result, idx) => {
+    if (result.status === 'fulfilled') {
+      ranked[idx] = result.value;
+    }
+  });
+
+  return ranked;
 }
