@@ -7,6 +7,7 @@ import {
 } from './types';
 import { checkEligibility } from './eligibility';
 import { scoreCandidate } from './scoring';
+import { getMatchTier } from '../ai/prompts';
 import {
   generateDeterministicExplanation,
   generateDeterministicIntroDraft,
@@ -95,15 +96,6 @@ export function rankCandidatesSync(
       scoreResult.strengths
     );
 
-    const tier =
-      scoreResult.overallScore >= 80
-        ? 'High Potential Match'
-        : scoreResult.overallScore >= 70
-        ? 'Strong Compatibility'
-        : scoreResult.overallScore >= 60
-        ? 'Moderate Fit'
-        : 'Selective Fit';
-
     results.push({
       customerId: customer.id,
       candidateId: candidate.id,
@@ -116,7 +108,7 @@ export function rankCandidatesSync(
       eligibilityReasons: eligibility.reasons,
       explanationSource: 'deterministic',
       provider: 'deterministic',
-      tier,
+      tier: getMatchTier(scoreResult.overallScore),
       keySynergies: scoreResult.strengths.slice(0, 3),
       frictionPoints: scoreResult.potentialConflicts.slice(0, 2),
       explanation,
