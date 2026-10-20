@@ -90,7 +90,7 @@ function toAiSuccess(
       configured: true,
       provider,
       status: 'active',
-      message: `Powered by ${provider === 'gemini' ? 'Google Gemini' : 'OpenAI'} (${model})`,
+      message: `Powered by AI (${model})`,
     },
   };
 }
@@ -172,7 +172,7 @@ export async function generateAiIntroEmail(
       introDraft: gemini.data.introDraft,
       source: 'ai',
       provider: 'gemini',
-      message: `Generated with Google Gemini (${gemini.model})`,
+      message: `Generated with AI (${gemini.model})`,
     };
   }
 

@@ -106,7 +106,7 @@ export default function CustomerMatchesPage() {
         if (data.insights.apiStatus?.status === 'error') {
           setApiNotice(
             data.insights.apiStatus.message ||
-              'Gemini API request failed. Reverted to deterministic fallback.'
+              'AI request failed. Reverted to deterministic fallback.'
           );
         }
         setMatches(prev =>
@@ -241,10 +241,10 @@ export default function CustomerMatchesPage() {
             <div className="flex items-start gap-2.5">
               <AlertTriangle className="w-4 h-4 text-black shrink-0 mt-0.5" />
               <div>
-                <span className="font-bold text-black uppercase">Gemini Service Notice:</span>{' '}
+                <span className="font-bold text-black uppercase">AI Service Notice:</span>{' '}
                 <span className="text-zinc-700">{apiNotice}</span>
                 <div className="text-[11px] text-zinc-500 mt-1 leading-relaxed">
-                  Tip: To activate live Gemini reasoning, ensure the Generative Language API is enabled in your Google Cloud Project or create an API key in Google AI Studio (<code className="bg-zinc-200 px-1 py-0.5 rounded text-black">aistudio.google.com</code>). The app seamlessly uses the deterministic engine in the meantime.
+                  Tip: To activate live AI reasoning, ensure the Generative Language API is enabled in your Google Cloud Project or create an API key in Google AI Studio (<code className="bg-zinc-200 px-1 py-0.5 rounded text-black">aistudio.google.com</code>). The app seamlessly uses the deterministic engine in the meantime.
                 </div>
               </div>
             </div>
@@ -437,22 +437,6 @@ export default function CustomerMatchesPage() {
                           <span className="text-xs font-bold uppercase font-mono tracking-wider text-black">
                             Matchmaker Rationale & Profile Fit
                           </span>
-                          <Badge
-                            variant="outline"
-                            className={`text-[9px] font-mono ${
-                              match.provider === 'gemini' || (match.explanationSource === 'ai' && match.provider !== 'openai')
-                                ? 'bg-black text-white border-black'
-                                : match.provider === 'openai'
-                                ? 'bg-zinc-800 text-white border-zinc-800'
-                                : 'bg-zinc-50 text-zinc-600 border-zinc-300'
-                            }`}
-                          >
-                            {match.provider === 'gemini' || (match.explanationSource === 'ai' && match.provider !== 'openai')
-                              ? '✨ Google Gemini'
-                              : match.provider === 'openai'
-                              ? '✨ OpenAI'
-                              : 'Deterministic Engine'}
-                          </Badge>
                         </div>
                         <Button
                           variant="ghost"
@@ -463,11 +447,11 @@ export default function CustomerMatchesPage() {
                         >
                           {isAiGen ? (
                             <>
-                              <Loader2 className="w-3 h-3 mr-1 animate-spin" /> Reasoning with Gemini...
+                              <Loader2 className="w-3 h-3 mr-1 animate-spin" /> Reasoning with AI...
                             </>
                           ) : (
                             <>
-                              <Sparkles className="w-3 h-3 mr-1" /> Regenerate with Gemini
+                              <Sparkles className="w-3 h-3 mr-1" /> Regenerate with AI
                             </>
                           )}
                         </Button>

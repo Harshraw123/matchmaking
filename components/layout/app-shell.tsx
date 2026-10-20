@@ -232,7 +232,7 @@ export function AppShell({
               <span>Matching Engine</span>
             </div>
             <p className="text-[11px] leading-relaxed text-zinc-500">
-              Deterministic 7-factor algorithms with Google Gemini & offline fallback.
+              Deterministic 7-factor algorithms with AI & offline fallback.
             </p>
             <div className="flex items-center gap-1.5 text-[10px] text-zinc-700 font-mono pt-0.5">
               <CheckCircle2 className="w-3 h-3 text-black" /> 116 Profiles Ingested

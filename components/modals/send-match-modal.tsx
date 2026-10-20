@@ -200,7 +200,7 @@ export function SendMatchModal({
                       Personalized Introduction Message
                     </Label>
                     <Badge variant="outline" className="text-[9px] font-mono bg-zinc-50 text-zinc-600 border-zinc-300">
-                      {introProvider === 'gemini' ? '✨ Gemini Draft' : introProvider === 'openai' ? '✨ OpenAI Draft' : 'Deterministic Draft'}
+                      {introProvider === 'gemini' || introProvider === 'openai' ? '✨ AI Draft' : 'Deterministic Draft'}
                     </Badge>
                   </div>
                   <Button
@@ -213,11 +213,11 @@ export function SendMatchModal({
                   >
                     {generatingIntro ? (
                       <>
-                        <Loader2 className="w-3 h-3 mr-1 animate-spin" /> Drafting with Gemini...
+                        <Loader2 className="w-3 h-3 mr-1 animate-spin" /> Drafting with AI...
                       </>
                     ) : (
                       <>
-                        <Sparkles className="w-3 h-3 mr-1 text-black" /> Regenerate with Gemini
+                        <Sparkles className="w-3 h-3 mr-1 text-black" /> Regenerate with AI
                       </>
                     )}
                   </Button>
